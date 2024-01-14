@@ -1,7 +1,7 @@
 [package]
 edition = "2021"
-name = "bevy_test"
-version = "0.1.0"
+name = "bevy_geo_nodes"
+version = "0.0.1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [profile.dev]
@@ -16,5 +16,3 @@ bevy-inspector-egui = "0.22"
 bevy_mod_raycast = "*"
 rand = "0.8.5"
 rapier3d = {version = "*", features = ["simd-stable"]}
-smooth-bevy-cameras = "0.10.0"
-three-d-asset = "0.4.0"

@@ -1,33 +1,26 @@
 use bevy::{
-    pbr::wireframe::WireframeMaterial,
     prelude::*,
-    render::{
-        mesh::{self, VertexAttributeValues},
-        render_resource::PrimitiveTopology,
-    },
+    render::{mesh, render_resource::PrimitiveTopology},
 };
 
-use three_d_asset::{Indices, Positions, TriMesh, Vector2, Vector3};
-
-use super::mesh_converter::MeshConverter;
+use super::boolean::{intersect, BooleanOperations};
 // Load tri_mesh
 
 pub trait Node {
-    fn new() -> Self;
-    fn default() -> GeoNode;
     // fn from_mesh(&self, mesh: Mesh) -> Self;
     // fn get_mesh(&self) -> &Mesh;
     // fn get_material(&self) -> &StandardMaterial;
     // fn get_pbr_bundle(&mut self) -> PbrBundle;
 }
 
+#[derive(Debug, Clone)]
 pub struct GeoNode {
     pub mesh: Mesh,
     pub material: StandardMaterial,
     pub scale: Vec3,
 }
 
-impl Node for GeoNode {
+impl Default for GeoNode {
     fn default() -> GeoNode {
         GeoNode {
             mesh: Mesh::from(shape::Cube::new(0.40)),
@@ -35,15 +28,9 @@ impl Node for GeoNode {
             scale: Vec3::new(1.0, 1.0, 1.0),
         }
     }
-
-    fn new() -> Self {
-        GeoNode {
-            mesh: Mesh::new(PrimitiveTopology::LineList),
-            material: StandardMaterial::default(),
-            scale: Vec3::new(1.0, 1.0, 1.0),
-        }
-    }
 }
+
+impl Node for GeoNode {}
 
 impl GeoNode {
     pub fn get_mesh(&self) -> &Mesh {
@@ -60,13 +47,7 @@ impl GeoNode {
         &mut self,
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<StandardMaterial>>,
-        scale: Option<Vec3>,
     ) -> PbrBundle {
-        let scale = match scale {
-            Some(scale) => scale,
-            None => Vec3::new(1.0, 1.0, 1.0),
-        };
-
         PbrBundle {
             mesh: meshes.add(self.mesh.clone()),
             material: materials.add(self.material.clone()),
@@ -75,26 +56,15 @@ impl GeoNode {
         }
     }
 
-    pub fn from_mesh(&self, mesh: Mesh) -> Self {
+    pub fn from_mesh(mesh: Mesh) -> Self {
         GeoNode {
             mesh: mesh,
-            material: self.material.clone(),
-            scale: Vec3::new(1.0, 1.0, 1.0),
+            ..Default::default()
         }
     }
 
-    fn convert_normals_to_tri_mesh(&self) -> tri_mesh::Mesh {
-        self.mesh.to_trimesh()
-    }
-
     pub fn combine(&mut self, other: GeoNode) {
-        let mut mesh1 = self.mesh.to_trimesh();
-        let mesh2 = other.mesh.to_trimesh();
-
-        // Convert the TriMesh back to Bevy mesh
-        mesh1.merge_with(&mesh2);
-
-        self.mesh = mesh1.to_bevy_mesh()
+        &self.union(&other);
     }
 
     pub fn merge(&mut self, other: GeoNode) {
