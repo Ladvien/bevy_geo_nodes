@@ -1,5 +1,6 @@
 use super::boolean::BooleanOperations;
 use bevy::prelude::*;
+use polars::error::PolarsError;
 
 pub trait Node {}
 

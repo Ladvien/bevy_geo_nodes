@@ -92,7 +92,6 @@ pub trait BooleanOperations {
 impl BooleanOperations for GeoNode {
     fn union(&self, other: &Self) -> Result<Self, GeoNodeError> {
         let result = self.mesh.to_dataframe();
-        println!("{:?}", result);
         match result {
             Ok(df) => {
                 println!("{:?}", df);
