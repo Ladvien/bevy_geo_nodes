@@ -7,38 +7,6 @@ pub trait ToDataframe {
     fn to_dataframe(&self) -> Result<DataFrame, GeoNodeError>;
 }
 
-// fn add_columns_to_dataframe<I: IntoIterator<Item = [f32; 3]>>(
-//     df: &mut DataFrame,
-//     column_prefix: &str,
-//     values: I,
-// ) -> Result<(), GeoNodeError> {
-//     let values: Vec<[f32; 3]> = values.into_iter().collect();
-//     for (i, suffix) in ["x", "y", "z"].iter().enumerate() {
-//         df.with_column(Series::new(
-//             &format!("{}_{}", column_prefix, suffix),
-//             values.iter().map(|v| v[i] as f64).collect::<Vec<_>>(),
-//         ))
-//         .or(Err(GeoNodeError::DataframeFromMeshError))?;
-//     }
-
-//     Ok(())
-// }
-
-macro_rules! define_as_series {
-    ($type:ident, $num:expr, $name:ident) => {
-        VertexAttributeValues::$type(values) => {
-            let mut series = Vec::new();
-            for i in 0..$num {
-                series.push(create_series(
-                    &format!("{}_{}", $name, ['x', 'y', 'z', 'w'][i]),
-                    &values.iter().map(|x| x[i] as f64).collect::<Vec<_>>(),
-                ));
-            }
-            Ok(series)
-        }
-    };
-}
-
 pub trait ToSeries {
     fn as_series1(&self, name: &str) -> Result<Vec<Series>, GeoNodeError>;
     fn as_series2(&self, name: &str) -> Result<Vec<Series>, GeoNodeError>;
@@ -46,182 +14,108 @@ pub trait ToSeries {
     fn as_series4(&self, name: &str) -> Result<Vec<Series>, GeoNodeError>;
 }
 
+macro_rules! define_as_series1 {
+    ($type:ty, $len:expr, $name:expr, $values:expr) => {
+        Ok({
+            (0..$len)
+                .map(|i| {
+                    Series::new(
+                        &format!("{}_{}", $name, i)[..],
+                        $values.iter().map(|x| *x as f64).collect::<Vec<_>>(),
+                    )
+                })
+                .collect::<Vec<_>>()
+        })
+    };
+}
+
+macro_rules! series_nth {
+    ($type:ty, $len:expr, $name:expr, $values:expr) => {
+        Ok({
+            (0..$len)
+                .map(|i| {
+                    Series::new(
+                        &format!("{}_{}", $name, i)[..],
+                        $values.iter().map(|x| x[i] as f64).collect::<Vec<_>>(),
+                    )
+                })
+                .collect::<Vec<_>>()
+        })
+    };
+}
+
 impl ToSeries for VertexAttributeValues {
     fn as_series1(&self, name: &str) -> Result<Vec<Series>, GeoNodeError> {
         match self {
-            VertexAttributeValues::Float32(values) => Ok(vec![Series::new(name, values.to_vec())]),
-            VertexAttributeValues::Sint32(values) => Ok(vec![Series::new(name, values.to_vec())]),
-            VertexAttributeValues::Uint32(values) => Ok(vec![Series::new(name, values.to_vec())]),
+            VertexAttributeValues::Float32(values) => define_as_series1!(Float32, 1, name, values),
+            VertexAttributeValues::Sint32(values) => define_as_series1!(Sint32, 1, name, values),
+            VertexAttributeValues::Uint32(values) => define_as_series1!(Uint32, 1, name, values),
             _ => Err(GeoNodeError::DataframeFromMeshError),
         }
     }
 
     fn as_series2(&self, name: &str) -> Result<Vec<Series>, GeoNodeError> {
         match self {
-            VertexAttributeValues::Float32x2(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Sint32x2(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Uint32x2(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Sint8x2(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Snorm8x2(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Uint8x2(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Unorm8x2(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Sint16x2(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Snorm16x2(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Uint16x2(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Unorm16x2(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-            ]),
+            VertexAttributeValues::Float32x2(values) => {
+                series_nth!(Float32x2, 2, name, values)
+            }
+            VertexAttributeValues::Sint32x2(values) => {
+                series_nth!(Sint32x2, 2, name, values)
+            }
+            VertexAttributeValues::Uint32x2(values) => {
+                series_nth!(Uint32x2, 2, name, values)
+            }
+            VertexAttributeValues::Sint8x2(values) => {
+                series_nth!(Sint8x2, 2, name, values)
+            }
+            VertexAttributeValues::Snorm8x2(values) => {
+                series_nth!(Snorm8x2, 2, name, values)
+            }
+            VertexAttributeValues::Uint8x2(values) => {
+                series_nth!(Uint8x2, 2, name, values)
+            }
+            VertexAttributeValues::Unorm8x2(values) => {
+                series_nth!(Unorm8x2, 2, name, values)
+            }
+            VertexAttributeValues::Sint16x2(values) => {
+                series_nth!(Sint16x2, 2, name, values)
+            }
+            VertexAttributeValues::Snorm16x2(values) => {
+                series_nth!(Snorm16x2, 2, name, values)
+            }
+            VertexAttributeValues::Uint16x2(values) => series_nth!(Uint16x2, 2, name, values),
+            VertexAttributeValues::Unorm16x2(values) => {
+                series_nth!(Unorm16x2, 2, name, values)
+            }
             _ => Err(GeoNodeError::DataframeFromMeshError),
         }
     }
 
     fn as_series3(&self, name: &str) -> Result<Vec<Series>, GeoNodeError> {
         match self {
-            VertexAttributeValues::Float32x3(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[2] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Sint32x3(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[2] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Uint32x3(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[2] as f64).collect::<Vec<_>>()),
-            ]),
+            VertexAttributeValues::Float32x3(values) => series_nth!(Float32x3, 3, name, values),
+            VertexAttributeValues::Sint32x3(values) => series_nth!(Sint32x3, 3, name, values),
+            VertexAttributeValues::Uint32x3(values) => series_nth!(Uint32x3, 3, name, values),
             _ => Err(GeoNodeError::DataframeFromMeshError),
         }
     }
 
     fn as_series4(&self, name: &str) -> Result<Vec<Series>, GeoNodeError> {
         match self {
-            VertexAttributeValues::Float32x4(values) => Ok(vec![
-                Series::new(
-                    &format!("{}_x", name)[..],
-                    values.iter().map(|x| x[0] as f64).collect::<Vec<_>>(),
-                ),
-                Series::new(
-                    &format!("{}_y", name)[..],
-                    values.iter().map(|x| x[1] as f64).collect::<Vec<_>>(),
-                ),
-                Series::new(
-                    &format!("{}_z", name)[..],
-                    values.iter().map(|x| x[2] as f64).collect::<Vec<_>>(),
-                ),
-                Series::new(
-                    &format!("{}_w", name)[..],
-                    values.iter().map(|x| x[3] as f64).collect::<Vec<_>>(),
-                ),
-            ]),
-            VertexAttributeValues::Sint32x4(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[2] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[3] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Uint32x4(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[2] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[3] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Sint16x4(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[2] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[3] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Snorm16x4(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[2] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[3] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Uint16x4(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[2] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[3] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Unorm16x4(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[2] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[3] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Sint8x4(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[2] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[3] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Snorm8x4(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[2] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[3] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Uint8x4(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[2] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[3] as f64).collect::<Vec<_>>()),
-            ]),
-            VertexAttributeValues::Unorm8x4(values) => Ok(vec![
-                Series::new(name, values.iter().map(|x| x[0] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[1] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[2] as f64).collect::<Vec<_>>()),
-                Series::new(name, values.iter().map(|x| x[3] as f64).collect::<Vec<_>>()),
-            ]),
+            VertexAttributeValues::Float32x4(values) => series_nth!(Float32x4, 4, name, values),
+            VertexAttributeValues::Sint32x4(values) => series_nth!(Sint32x4, 4, name, values),
+            VertexAttributeValues::Uint32x4(values) => series_nth!(Uint32x4, 4, name, values),
+            VertexAttributeValues::Sint16x4(values) => series_nth!(Sint16x4, 4, name, values),
+            VertexAttributeValues::Snorm16x4(values) => series_nth!(Snorm16x4, 4, name, values),
+            VertexAttributeValues::Uint16x4(values) => series_nth!(Uint16x4, 4, name, values),
+            VertexAttributeValues::Unorm16x4(values) => series_nth!(Unorm16x4, 4, name, values),
+            VertexAttributeValues::Sint8x4(values) => series_nth!(Sint8x4, 4, name, values),
+            VertexAttributeValues::Snorm8x4(values) => series_nth!(Snorm8x4, 4, name, values),
+            VertexAttributeValues::Uint8x4(values) => series_nth!(Uint8x4, 4, name, values),
+            VertexAttributeValues::Unorm8x4(values) => series_nth!(Unorm8x4, 4, name, values),
             _ => Err(GeoNodeError::DataframeFromMeshError),
         }
     }
-}
-
-fn append_all_series_to_dataframe(
-    df: &mut DataFrame,
-    series: Vec<Series>,
-) -> Result<(), GeoNodeError> {
-    for series in series {
-        df.with_column(series)
-            .or(Err(GeoNodeError::DataframeFromMeshError))?;
-    }
-
-    Ok(())
 }
 
 impl ToDataframe for Mesh {
@@ -234,15 +128,17 @@ impl ToDataframe for Mesh {
             .ok_or(GeoNodeError::FailedToGetColumnError("uv".to_string()))?
             .as_series2("uv")?;
 
-        let positions_iter = positions.as_series3("position")?;
-        let normals_iter = normals.as_series3("normal")?;
-
-        for series in positions_iter {
+        for series in positions.as_series3("position")? {
             df.with_column(series)
                 .or(Err(GeoNodeError::DataframeFromMeshError))?;
         }
 
-        for series in normals_iter {
+        for series in normals.as_series3("normal")? {
+            df.with_column(series)
+                .or(Err(GeoNodeError::DataframeFromMeshError))?;
+        }
+
+        for series in uvs {
             df.with_column(series)
                 .or(Err(GeoNodeError::DataframeFromMeshError))?;
         }
