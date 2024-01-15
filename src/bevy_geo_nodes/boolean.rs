@@ -81,7 +81,7 @@ pub fn intersect(pL: Vec3, pR: Vec3, qL: Vec3, qR: Vec3) -> Vec4 {
 
 use bevy::math::{Vec2, Vec3, Vec4};
 
-use super::GeoNode;
+use super::{dataframes::ToDataframe, GeoNode};
 
 pub trait BooleanOperations {
     fn union(&self, other: &Self) -> Self;
@@ -91,7 +91,7 @@ pub trait BooleanOperations {
 
 impl BooleanOperations for GeoNode {
     fn union(&self, other: &Self) -> Self {
-        println!("{:?}", self);
+        self.mesh.to_dataframe();
 
         return self.clone();
     }

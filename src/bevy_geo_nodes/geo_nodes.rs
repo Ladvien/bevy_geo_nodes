@@ -1,10 +1,12 @@
+use super::boolean::BooleanOperations;
 use bevy::{
     prelude::*,
-    render::{mesh, render_resource::PrimitiveTopology},
+    render::{
+        mesh::{self},
+        render_resource::PrimitiveTopology,
+    },
 };
-
-use super::boolean::{intersect, BooleanOperations};
-// Load tri_mesh
+use std::fmt;
 
 pub trait Node {
     // fn from_mesh(&self, mesh: Mesh) -> Self;
@@ -126,5 +128,18 @@ impl GeoNode {
         )));
         // println!("{:?}", mesh);
         self.mesh = mesh;
+    }
+}
+
+pub struct GeoNodeError;
+impl fmt::Display for GeoNodeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "GeoNodeError")
+    }
+}
+
+impl fmt::Debug for GeoNodeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "GeoNodeError")
     }
 }
