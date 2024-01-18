@@ -2,7 +2,7 @@ use bevy::pbr::wireframe::{Wireframe, WireframePlugin};
 use bevy::prelude::*;
 mod bevy_geo_nodes;
 use bevy::window::{PresentMode, WindowTheme};
-use bevy_geo_nodes::{GeoNode, Node};
+use bevy_geo_nodes::MarchingCubes;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use std::f32::consts::PI;
 
@@ -38,7 +38,7 @@ fn main() {
                 }),
                 ..Default::default()
             }),
-            WorldInspectorPlugin::new(),
+            // WorldInspectorPlugin::new(),
             WireframePlugin::default(),
         ))
         .add_systems(Startup, setup)
@@ -74,6 +74,32 @@ pub fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    let resolution = 32 as usize;
+    let mc = MarchingCubes::new(&Mesh::from(shape::Cube::new(0.40)), resolution);
+    mc.march_all();
+    for position in mc.voxel_grid.read_all().chunks_exact(3) {
+        // Create a small isosphere at each point
+
+        commands.spawn(PbrBundle {
+            mesh: meshes.add(
+                shape::Icosphere {
+                    radius: 0.010,
+                    subdivisions: 4,
+                }
+                .try_into()
+                .unwrap(),
+            ),
+            material: materials.add(StandardMaterial {
+                base_color: Color::rgba(0.8, 0.1, 0.0, 1.0),
+                emissive: Color::rgba(0.8, 0.1, 0.0, 01.0),
+                alpha_mode: AlphaMode::Blend,
+                ..Default::default()
+            }),
+            transform: Transform::from_xyz(position[0], position[1], position[2]),
+            ..Default::default()
+        });
+    }
+
     // let mut geo_node = GeoNode::from_mesh(Mesh::from(shape::Cube::new(0.40)));
     // let mut geo_node2 = GeoNode::from_mesh(Mesh::from(shape::Cube::new(0.80)));
 
@@ -97,14 +123,13 @@ pub fn setup(
     // pbr.transform.scale = CUBE_SCALE;
 
     commands.spawn((Camera3dBundle {
-        transform: Transform::from_xyz(GAME_BOUNDS.max_x, 16., GAME_BOUNDS.max_z)
-            .looking_at(Vec3::ZERO, Vec3::Y),
+        transform: Transform::from_xyz(1.0, 1.0, 1.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     },));
 
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
-            illuminance: 5900.0,
+            illuminance: 7900.0,
             shadows_enabled: true,
             ..default()
         },
@@ -116,10 +141,10 @@ pub fn setup(
         ..default()
     });
 
-    commands
-        .spawn(pbr)
-        .insert(Name::new("Model"))
-        .insert(Wireframe);
+    // commands
+    //     .spawn(pbr)
+    //     .insert(Name::new("Model"))
+    //     .insert(Wireframe);
 }
 
 pub fn camera_controls(

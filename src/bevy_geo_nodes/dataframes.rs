@@ -163,11 +163,11 @@ impl ToMesh for DataFrame {
         // let mut uvs = Vec::new();
 
         // I need a way to convert three polars Series into a Vec<Vec3>>
-        let position = &self.to_vec_of_vec3("position_0", "position_1", "position_2")?;
-        let normal = &self.to_vec_of_vec3("normal_0", "normal_1", "normal_2")?;
-        let uv = &self.to_vec_of_vec3("uv_0", "uv_1", "uv_2")?;
+        // let position = &self.to_vec_of_vec3("position_0", "position_1", "position_2")?;
+        // let normal = &self.to_vec_of_vec3("normal_0", "normal_1", "normal_2")?;
+        // let uv = &self.to_vec_of_vec3("uv_0", "uv_1", "uv_2")?;
 
-        let t = VertexAttributeValues::Float32x3(position.clone());
+        // let t = VertexAttributeValues::Float32x3(position.clone());
 
         // let new_mesh = Mesh::from(&[(
         //     ,
