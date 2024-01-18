@@ -4,3 +4,5 @@ pub use geo_nodes::{GeoNode, GeoNodeError};
 
 mod boolean;
 mod dataframes;
+mod marching_cube_tables;
+mod marching_cubes;

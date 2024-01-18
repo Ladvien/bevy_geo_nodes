@@ -74,27 +74,27 @@ pub fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let mut geo_node = GeoNode::from_mesh(Mesh::from(shape::Cube::new(0.40)));
-    let mut geo_node2 = GeoNode::from_mesh(Mesh::from(shape::Cube::new(0.80)));
+    // let mut geo_node = GeoNode::from_mesh(Mesh::from(shape::Cube::new(0.40)));
+    // let mut geo_node2 = GeoNode::from_mesh(Mesh::from(shape::Cube::new(0.80)));
 
-    // Set scale
-    const CUBE_SCALE: Vec3 = Vec3::new(10.0, 10.0, 10.0);
-    geo_node.scale = CUBE_SCALE;
-    // geo_node2.scale = CUBE_SCALE - 4.0;
+    // // Set scale
+    // const CUBE_SCALE: Vec3 = Vec3::new(10.0, 10.0, 10.0);
+    // geo_node.scale = CUBE_SCALE;
+    // // geo_node2.scale = CUBE_SCALE - 4.0;
 
-    geo_node.combine(geo_node2);
+    // geo_node.combine(geo_node2);
 
-    // Add color to the mesh
-    geo_node.material = StandardMaterial {
-        base_color: Color::rgba(0.8, 0.1, 0.6, 0.02),
-        emissive: Color::rgba(0.8, 0.1, 0.6, 0.02),
-        alpha_mode: AlphaMode::Blend,
-        ..Default::default()
-    };
+    // // Add color to the mesh
+    // geo_node.material = StandardMaterial {
+    //     base_color: Color::rgba(0.8, 0.1, 0.6, 0.02),
+    //     emissive: Color::rgba(0.8, 0.1, 0.6, 0.02),
+    //     alpha_mode: AlphaMode::Blend,
+    //     ..Default::default()
+    // };
 
-    let mut pbr = geo_node.get_pbr_bundle(&mut meshes, &mut materials);
+    // let mut pbr = geo_node.get_pbr_bundle(&mut meshes, &mut materials);
 
-    pbr.transform.scale = CUBE_SCALE;
+    // pbr.transform.scale = CUBE_SCALE;
 
     commands.spawn((Camera3dBundle {
         transform: Transform::from_xyz(GAME_BOUNDS.max_x, 16., GAME_BOUNDS.max_z)

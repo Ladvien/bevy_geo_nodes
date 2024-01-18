@@ -81,6 +81,8 @@ pub fn intersect(pL: Vec3, pR: Vec3, qL: Vec3, qR: Vec3) -> Vec4 {
 
 use bevy::math::{Vec2, Vec3, Vec4};
 
+use crate::bevy_geo_nodes::dataframes::ToMesh;
+
 use super::{dataframes::ToDataframe, GeoNode, GeoNodeError};
 
 pub trait BooleanOperations {
@@ -95,6 +97,15 @@ impl BooleanOperations for GeoNode {
         match result {
             Ok(df) => {
                 println!("{:?}", df);
+                let mesh = df.to_mesh();
+                match mesh {
+                    Ok(mesh) => {
+                        println!("{:?}", mesh);
+                    }
+                    Err(err) => {
+                        println!("{:?}", err);
+                    }
+                }
             }
             Err(err) => {
                 println!("{:?}", err);
