@@ -2,8 +2,14 @@ use bevy::pbr::wireframe::{Wireframe, WireframePlugin};
 use bevy::prelude::*;
 mod bevy_geo_nodes;
 use bevy::window::{PresentMode, WindowTheme};
-use bevy_geo_nodes::MarchingCubes;
+use bevy_geo_nodes::{MarchingCubes, VoxelGrid};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use smooth_bevy_cameras::controllers::fps::{
+    FpsCameraBundle, FpsCameraController, FpsCameraPlugin,
+};
+use smooth_bevy_cameras::controllers::orbit::{OrbitCameraBundle, OrbitCameraController};
+use smooth_bevy_cameras::controllers::unreal::{UnrealCameraBundle, UnrealCameraController};
+use smooth_bevy_cameras::{LookTransform, LookTransformBundle, LookTransformPlugin, Smoother};
 use std::f32::consts::PI;
 
 pub const WIDTH: f32 = 640.0;
@@ -22,10 +28,10 @@ fn main() {
                     resolution: RESOLUTION.into(),
                     present_mode: PresentMode::AutoVsync,
                     // Tells wasm to resize the window according to the available canvas
-                    fit_canvas_to_parent: true,
-                    // Tells wasm not to override default event handling, like F5, Ctrl+R etc.
-                    prevent_default_event_handling: false,
-                    window_theme: Some(WindowTheme::Dark),
+                    // fit_canvas_to_parent: true,
+                    // // Tells wasm not to override default event handling, like F5, Ctrl+R etc.
+                    // prevent_default_event_handling: false,
+                    // window_theme: Some(WindowTheme::Dark),
                     enabled_buttons: bevy::window::EnabledButtons {
                         maximize: false,
                         ..Default::default()
@@ -33,16 +39,25 @@ fn main() {
                     // This will spawn an invisible window
                     // The window will be made visible in the make_visible() system after 3 frames.
                     // This is useful when you want to avoid the white window that shows up before the GPU is ready to render the app.
-                    visible: true,
+                    // visible: true,
                     ..Default::default()
                 }),
                 ..Default::default()
             }),
             // WorldInspectorPlugin::new(),
-            WireframePlugin::default(),
+            // WireframePlugin::default(),
+            LookTransformPlugin,
+            FpsCameraPlugin::default(),
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, (camera_controls, bevy::window::close_on_esc))
+        .add_systems(
+            Update,
+            (
+                // camera_controls,
+                // move_camera_system,
+                bevy::window::close_on_esc,
+            ),
+        )
         .run();
 }
 
@@ -69,36 +84,56 @@ pub const GAME_BOUNDS: Bounds2D = Bounds2D {
     max_z: GAME_Z_MAX,
 };
 
+pub const ON_COLOR: Color = Color::rgba(0.8, 0.1, 0.0, 1.0);
+pub const OFF_COLOR: Color = Color::rgba(0.0, 0.1, 0.8, 1.0);
+
 pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let resolution = 32 as usize;
-    let mc = MarchingCubes::new(&Mesh::from(shape::Cube::new(0.40)), resolution);
-    mc.march_all();
-    for position in mc.voxel_grid.read_all().chunks_exact(3) {
-        // Create a small isosphere at each point
-
+    let resolution = 4 as usize;
+    let voxel_grid = VoxelGrid::new(&[[0.0, 0.0, 0.0]], resolution);
+    voxel_grid.debug(&mut |x, y, z, resolution, noise| {
         commands.spawn(PbrBundle {
-            mesh: meshes.add(
-                shape::Icosphere {
-                    radius: 0.010,
-                    subdivisions: 4,
-                }
-                .try_into()
-                .unwrap(),
-            ),
+            mesh: meshes.add(shape::Cube { size: 0.10 }.try_into().unwrap()),
             material: materials.add(StandardMaterial {
-                base_color: Color::rgba(0.8, 0.1, 0.0, 1.0),
-                emissive: Color::rgba(0.8, 0.1, 0.0, 01.0),
+                base_color: OFF_COLOR,
+                emissive: OFF_COLOR,
                 alpha_mode: AlphaMode::Blend,
                 ..Default::default()
             }),
-            transform: Transform::from_xyz(position[0], position[1], position[2]),
+            transform: Transform::from_xyz(x, y, z),
             ..Default::default()
         });
-    }
+    });
+
+    // voxel_grid.
+
+    // let mc = MarchingCubes::new(&Mesh::from(shape::Cube::new(0.40)), resolution);
+    // mc.march_all();
+    // for position in mc.voxel_grid.read_all().chunks_exact(3) {
+    //     // Create a small isosphere at each point
+
+    //     commands.spawn(PbrBundle {
+    //         mesh: meshes.add(
+    //             shape::Icosphere {
+    //                 radius: 0.010,
+    //                 subdivisions: 4,
+    //             }
+    //             .try_into()
+    //             .unwrap(),
+    //         ),
+    //         material: materials.add(StandardMaterial {
+    //             base_color: Color::rgba(0.8, 0.1, 0.0, 1.0),
+    //             emissive: Color::rgba(0.8, 0.1, 0.0, 01.0),
+    //             alpha_mode: AlphaMode::Blend,
+    //             ..Default::default()
+    //         }),
+    //         transform: Transform::from_xyz(position[0], position[1], position[2]),
+    //         ..Default::default()
+    //     });
+    // }
 
     // let mut geo_node = GeoNode::from_mesh(Mesh::from(shape::Cube::new(0.40)));
     // let mut geo_node2 = GeoNode::from_mesh(Mesh::from(shape::Cube::new(0.80)));
@@ -122,10 +157,32 @@ pub fn setup(
 
     // pbr.transform.scale = CUBE_SCALE;
 
-    commands.spawn((Camera3dBundle {
-        transform: Transform::from_xyz(1.0, 1.0, 1.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    },));
+    // commands.spawn((Camera3dBundle {
+    //     transform: Transform::from_xyz(0.0, 5.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
+    //     ..default()
+    // },));
+    let eye = Vec3::new(-2.0, 5.0, 5.0);
+    let target = Vec3::new(0., 0., 0.);
+    let up = Vec3::Y;
+
+    commands
+        .spawn(Camera3dBundle::default())
+        .insert(FpsCameraBundle::new(
+            FpsCameraController::default(),
+            eye,
+            target,
+            up,
+        ));
+
+    // commands
+    //     .spawn(LookTransformBundle {
+    //         transform: LookTransform::new(eye, target, up),
+    //         smoother: Smoother::new(0.9), // Value between 0.0 and 1.0, higher is smoother.
+    //     })
+    //     .insert(Camera3dBundle {
+    //         transform: Transform::from_xyz(0.0, 5.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
+    //         ..default()
+    //     });
 
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
@@ -147,60 +204,66 @@ pub fn setup(
     //     .insert(Wireframe);
 }
 
-pub fn camera_controls(
-    keyboard: Res<Input<KeyCode>>,
-    // mut game: ResMut<Game>,
-    mut camera_query: Query<&mut Transform, With<Camera3d>>,
-    mut entities: Query<&mut Transform, Without<Camera3d>>,
-    time: Res<Time>,
-) {
-    let mut camera = camera_query.single_mut();
+// pub fn camera_controls(
+//     keyboard: Res<Input<KeyCode>>,
+//     // mut game: ResMut<Game>,
+//     mut camera_query: Query<&mut Transform, With<Camera3d>>,
+//     mut entities: Query<&mut Transform, Without<Camera3d>>,
+//     time: Res<Time>,
+// ) {
+//     let mut camera = camera_query.single_mut();
 
-    let mut forward = camera.forward();
-    forward.y = 0.0;
-    forward = forward.normalize();
+//     let mut forward = camera.forward();
+//     // forward.y = 0.0;
+//     forward = forward.normalize();
+//     // println!("{:?}", forward);
 
-    let mut left = camera.left();
-    left.y = 0.0;
-    left = left.normalize();
+//     let mut left = camera.left();
+//     left.y = 0.0;
+//     left = left.normalize();
 
-    let speed = CAMERA_MOVEMENT_SPEED;
-    let rotate_speed = CAMERA_ROTATION_SPEED;
+//     let mut down = camera.down();
+//     down.y = 0.0;
+//     down = down.normalize();
 
-    if keyboard.pressed(KeyCode::W) {
-        camera.translation += forward * time.delta_seconds() * speed;
-    }
-    if keyboard.pressed(KeyCode::S) {
-        camera.translation -= forward * time.delta_seconds() * speed;
-    }
-    if keyboard.pressed(KeyCode::A) {
-        camera.translation += left * time.delta_seconds() * speed;
-    }
-    if keyboard.pressed(KeyCode::D) {
-        camera.translation -= left * time.delta_seconds() * speed;
-    }
-    if keyboard.pressed(KeyCode::Q) {
-        camera.rotate_axis(Vec3::Y, rotate_speed * time.delta_seconds())
-    }
-    if keyboard.pressed(KeyCode::E) {
-        camera.rotate_axis(Vec3::Y, -rotate_speed * time.delta_seconds())
-    }
-    // if keyboard.pressed(KeyCode::Z) {
-    //     camera.translation.y += speed * time.delta_seconds();
-    // }
-    // if keyboard.pressed(KeyCode::X) {
-    //     camera.translation.y -= speed * time.delta_seconds();
-    // }
-    // Zoom in/out
-    if keyboard.pressed(KeyCode::Z) {
-        // Iterate through all meshes and zoom them in/out
-        for mut transform in entities.iter_mut() {
-            transform.scale *= 1.0 + time.delta_seconds();
-        }
-    }
-    if keyboard.pressed(KeyCode::X) {
-        for mut transform in entities.iter_mut() {
-            transform.scale *= 1.0 - time.delta_seconds();
-        }
-    }
-}
+//     let speed = CAMERA_MOVEMENT_SPEED;
+//     let rotate_speed = CAMERA_ROTATION_SPEED;
+
+//     if keyboard.pressed(KeyCode::W) {
+//         camera.translation += forward * time.delta_seconds() * speed;
+//     }
+//     if keyboard.pressed(KeyCode::S) {
+//         camera.translation -= forward * time.delta_seconds() * speed;
+//     }
+//     if keyboard.pressed(KeyCode::A) {
+//         camera.translation += left * time.delta_seconds() * speed;
+//     }
+//     if keyboard.pressed(KeyCode::D) {
+//         camera.translation -= left * time.delta_seconds() * speed;
+//     }
+//     if keyboard.pressed(KeyCode::E) {
+//         camera.rotate_axis(Vec3::Y, rotate_speed * time.delta_seconds())
+//     }
+//     if keyboard.pressed(KeyCode::Q) {
+//         camera.rotate_axis(Vec3::Y, -rotate_speed * time.delta_seconds())
+//     }
+//     if keyboard.pressed(KeyCode::Z) {
+//         camera.translation += down * time.delta_seconds() * speed;
+//     }
+//     if keyboard.pressed(KeyCode::X) {
+//         camera.translation -= down * time.delta_seconds() * speed;
+//     }
+
+//     // Zoom in/out
+//     // if keyboard.pressed(KeyCode::Z) {
+//     //     // Iterate through all meshes and zoom them in/out
+//     //     for mut transform in entities.iter_mut() {
+//     //         transform.scale *= 1.0 + time.delta_seconds();
+//     //     }
+//     // }
+//     // if keyboard.pressed(KeyCode::X) {
+//     //     for mut transform in entities.iter_mut() {
+//     //         transform.scale *= 1.0 - time.delta_seconds();
+//     //     }
+//     // }
+// }

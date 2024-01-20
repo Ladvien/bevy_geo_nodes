@@ -18,6 +18,6 @@ polars = "0.36.2"
 rand = "0.8.5"
 rapier3d = {version = "*", features = ["simd-stable"]}
 # strum = {version = "0.25", features = ["derive"]}
-
+smooth-bevy-cameras = "0.10.0"
 # https://docs.rs/noise/latest/noise/
 noise = "0.8.2"

@@ -23,15 +23,20 @@ pub struct VoxelGrid {
     pub data: Vec<f32>,
     pub resolution: usize,
 }
+fn scaler_field(x: f32, y: f32, z: f32, resolution: usize, noise: f32) -> f32 {
+    x + y * resolution as f32 + z * resolution as f32 * resolution as f32 * noise
+}
 
 impl VoxelGrid {
     pub fn new(data: &[[f32; 3]], resolution: usize) -> Self {
         let mut voxel_grid: Vec<f32> = Vec::with_capacity(resolution * resolution * resolution);
 
-        for datum in data {
-            voxel_grid.push(datum[0]);
-            voxel_grid.push(datum[1]);
-            voxel_grid.push(datum[2]);
+        for x in 0..resolution {
+            for y in 0..resolution {
+                for z in 0..resolution {
+                    voxel_grid.push(scaler_field(x as f32, y as f32, z as f32, resolution, 0.1));
+                }
+            }
         }
 
         Self {
@@ -40,25 +45,49 @@ impl VoxelGrid {
         }
     }
 
-    pub fn generate_from_mesh(&mut self, mesh: &Mesh) -> Self {
+    pub fn from_mesh(mesh: &Mesh, resolution: usize) -> Self {
         let positions = mesh
             .attribute(Mesh::ATTRIBUTE_POSITION)
             .unwrap()
             .as_float3()
             .unwrap();
 
-        for xyz in positions.iter() {
-            self.data.push(xyz[0]);
-            self.data.push(xyz[1]);
-            self.data.push(xyz[2]);
-        }
+        // Voxelize the mesh
 
-        self.clone()
+        let mut voxel_grid = VoxelGrid::new(positions, resolution);
+
+        voxel_grid
     }
 
-    pub fn read(&self, x: f32, y: f32, z: f32) {
-        let t = self.scaler_field(x, y, z);
-        self.data.push(t);
+    pub fn debug(&self, func: &mut dyn FnMut(f32, f32, f32, usize, f32)) {
+        for x in 0..self.resolution {
+            for y in 0..self.resolution {
+                for z in 0..self.resolution {
+                    func(x as f32, y as f32, z as f32, self.resolution, 0.1)
+                }
+            }
+        }
+    }
+
+    // pub fn generate_from_mesh(&mut self, mesh: &Mesh) -> Self {
+    //     let positions = mesh
+    //         .attribute(Mesh::ATTRIBUTE_POSITION)
+    //         .unwrap()
+    //         .as_float3()
+    //         .unwrap();
+
+    //     for xyz in positions.iter() {
+    //         self.data.push(xyz[0]);
+    //         self.data.push(xyz[1]);
+    //         self.data.push(xyz[2]);
+    //     }
+
+    //     self.clone()
+    // }
+
+    pub fn read(&self, x: usize, y: usize, z: usize) -> f32 {
+        println!("{} {} {}", x, y, z);
+        self.data[x + y * self.resolution + z * self.resolution * self.resolution]
     }
 
     pub fn read_all(&self) -> Vec<f32> {
@@ -67,17 +96,6 @@ impl VoxelGrid {
 
     pub fn push(&mut self, value: f32) {
         self.data.push(value);
-    }
-
-    fn scaler_field(
-        &self,
-        x: f32,
-        y: f32,
-        z: f32,
-        // noise: f32
-    ) -> f32 {
-        x + y * self.resolution as f32 + z * self.resolution as f32 * self.resolution as f32
-        // * noise
     }
 }
 
@@ -100,9 +118,9 @@ impl MarchingCubes {
     }
 
     pub fn march_all(&self) -> Self {
-        for x in 0..self.voxel_grid.resolution {
-            for y in 0..self.voxel_grid.resolution {
-                for z in 0..self.voxel_grid.resolution {
+        for x in 0..self.voxel_grid.resolution - 1 {
+            for y in 0..self.voxel_grid.resolution - 1 {
+                for z in 0..self.voxel_grid.resolution - 1 {
                     self.march((x, y, z));
                 }
             }
